@@ -1,7 +1,11 @@
 allowBuilds:
-  '@ffmpeg-installer/linux-x64': false
+  "@ffmpeg-installer/linux-x64": false
+  "@google/genai": false
   esbuild: false
   onnxruntime-node: false
   protobufjs: false
   ref-napi: false
   sharp: false
+
+overrides:
+  onnxruntime-node: 1.24.3

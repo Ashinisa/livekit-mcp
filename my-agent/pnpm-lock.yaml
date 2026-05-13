@@ -372,8 +372,8 @@ packages:
     engines: {node: '>=18'}
     hasBin: true
 
-  '@huggingface/jinja@0.5.8':
-    resolution: {integrity: sha512-ZdElB7DPS7QQS8ZnFc5RPPtkg+eN11z8AmIZWAyes6pSbwXqiFB/POVevvm01begdSX1ho9Gxln/F6qlQMsuaA==}
+  '@huggingface/jinja@0.5.9':
+    resolution: {integrity: sha512-uWTG+l3VJRsl7EXxYizuL3P+cCPoc3cRqbWWRcQN0FhejRfbdq0RNhCmbY/YDtnTcz9icdLYuLDjsnz4d8JMuw==}
     engines: {node: '>=18'}
 
   '@huggingface/tasks@0.19.90':
@@ -2277,8 +2277,8 @@ packages:
     resolution: {integrity: sha512-cdGef/drWFoydD1JsMzuFf8100nZl+GT+yacc2bEced5f9Rjk4z+WtFUTBu9PhOi9j/jfmBPu0mMEY4wIdAF8A==}
     engines: {node: '>= 0.6.0'}
 
-  protobufjs@7.5.6:
-    resolution: {integrity: sha512-M71sTMB146U3u0di3yup8iM+zv8yPRNQVr1KK4tyBitl3qFvEGucq/rGDRShD2rsJhtN02RJaJ7j5X5hmy8SJg==}
+  protobufjs@7.5.7:
+    resolution: {integrity: sha512-NGnrxS/nLKUo5nkbVQxlC71sB4hdfImdYIbFeSCidxtwATx0AHRPcANSLd0q5Bb2BkoSWo2iisQhGg5/r+ihbA==}
     engines: {node: '>=12.0.0'}
 
   proxy-addr@2.0.7:
@@ -2390,8 +2390,8 @@ packages:
   semver-compare@1.0.0:
     resolution: {integrity: sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow==}
 
-  semver@7.7.4:
-    resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
+  semver@7.8.0:
+    resolution: {integrity: sha512-AcM7dV/5ul4EekoQ29Agm5vri8JNqRyj39o0qpX6vDF2GZrtutZl5RwgD1XnZjiTAfncsJhMI48QQH3sN87YNA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -2944,7 +2944,7 @@ snapshots:
     dependencies:
       google-auth-library: 10.6.2
       p-retry: 4.6.2
-      protobufjs: 7.5.6
+      protobufjs: 7.5.7
       ws: 8.20.0
     optionalDependencies:
       '@modelcontextprotocol/sdk': 1.29.0(zod@3.25.76)
@@ -2961,13 +2961,13 @@ snapshots:
     dependencies:
       '@huggingface/tasks': 0.19.90
 
-  '@huggingface/jinja@0.5.8': {}
+  '@huggingface/jinja@0.5.9': {}
 
   '@huggingface/tasks@0.19.90': {}
 
   '@huggingface/transformers@3.7.2':
     dependencies:
-      '@huggingface/jinja': 0.5.8
+      '@huggingface/jinja': 0.5.9
       onnxruntime-node: 1.24.3
       onnxruntime-web: 1.22.0-dev.20250409-89f8206ba4
       sharp: 0.34.5
@@ -3348,7 +3348,7 @@ snapshots:
       '@types/shimmer': 1.2.0
       import-in-the-middle: 1.15.0
       require-in-the-middle: 7.5.2
-      semver: 7.7.4
+      semver: 7.8.0
       shimmer: 1.2.1
     transitivePeerDependencies:
       - supports-color
@@ -3374,7 +3374,7 @@ snapshots:
       '@opentelemetry/sdk-logs': 0.208.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-metrics': 2.2.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.2.0(@opentelemetry/api@1.9.1)
-      protobufjs: 7.5.6
+      protobufjs: 7.5.7
 
   '@opentelemetry/otlp-transformer@0.54.2(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -3385,7 +3385,7 @@ snapshots:
       '@opentelemetry/sdk-logs': 0.54.2(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-metrics': 1.27.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 1.27.0(@opentelemetry/api@1.9.1)
-      protobufjs: 7.5.6
+      protobufjs: 7.5.7
 
   '@opentelemetry/propagator-b3@1.30.1(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -3470,7 +3470,7 @@ snapshots:
       '@opentelemetry/propagator-b3': 1.30.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/propagator-jaeger': 1.30.1(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 1.30.1(@opentelemetry/api@1.9.1)
-      semver: 7.7.4
+      semver: 7.8.0
 
   '@opentelemetry/semantic-conventions@1.27.0': {}
 
@@ -3687,7 +3687,7 @@ snapshots:
       '@typescript-eslint/visitor-keys': 8.59.2
       debug: 4.4.3
       minimatch: 10.2.5
-      semver: 7.7.4
+      semver: 7.8.0
       tinyglobby: 0.2.16
       ts-api-utils: 2.5.0(typescript@5.9.3)
       typescript: 5.9.3
@@ -4371,7 +4371,7 @@ snapshots:
       es6-error: 4.1.1
       matcher: 3.0.0
       roarr: 2.15.4
-      semver: 7.7.4
+      semver: 7.8.0
       serialize-error: 7.0.1
 
   globals@14.0.0: {}
@@ -4676,7 +4676,7 @@ snapshots:
       long: 5.3.2
       onnxruntime-common: 1.22.0-dev.20250409-89f8206ba4
       platform: 1.3.6
-      protobufjs: 7.5.6
+      protobufjs: 7.5.7
 
   openai@6.37.0(ws@8.20.0)(zod@3.25.76):
     optionalDependencies:
@@ -4836,7 +4836,7 @@ snapshots:
 
   process@0.11.10: {}
 
-  protobufjs@7.5.6:
+  protobufjs@7.5.7:
     dependencies:
       '@protobufjs/aspromise': 1.1.2
       '@protobufjs/base64': 1.1.2
@@ -5000,7 +5000,7 @@ snapshots:
 
   semver-compare@1.0.0: {}
 
-  semver@7.7.4: {}
+  semver@7.8.0: {}
 
   send@1.2.1:
     dependencies:
@@ -5039,7 +5039,7 @@ snapshots:
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
-      semver: 7.7.4
+      semver: 7.8.0
     optionalDependencies:
       '@img/sharp-darwin-arm64': 0.34.5
       '@img/sharp-darwin-x64': 0.34.5

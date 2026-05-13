@@ -116,7 +116,7 @@ async function buildMCPTools(): Promise<{ tools: Record<string, llm.FunctionTool
 
   const transport = new StdioClientTransport({
     command: "surveilr",
-    args: ["mcp", "server", "-d", "/home/ashinisa/my-agent/resource-surveillance.sqlite.db"],
+    args: ["mcp", "server", "-d", "/home/siju/workspaces/github.com/Ashinisa/livekit-mcp/my-agent/resource-surveillance.sqlite.db"],
     env: process.env as Record<string, string>,
   });
 
