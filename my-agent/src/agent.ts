@@ -3,10 +3,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { llm, voice } from "@livekit/agents";
 import { z } from "zod";
 
-// Simple cache — one set of tables for the lifetime of the process
 let cachedTables: string[] | null = null;
 
-async function getKnownTables(
+export async function getKnownTables(
   mcpTools: Record<string, llm.FunctionTool<any>>
 ): Promise<string[]> {
   if (cachedTables !== null) {
@@ -26,10 +25,7 @@ async function getKnownTables(
         sql: "SELECT name FROM sqlite_master WHERE type IN ('table', 'view') AND name NOT LIKE 'sqlite_%' ORDER BY name",
         limit: 200,
       },
-      {
-        toolCallId: "known-tables-cache",
-        messages: [],
-      }
+      { toolCallId: "known-tables-cache", messages: [] }
     );
 
     const textContent = (
@@ -55,63 +51,90 @@ async function getKnownTables(
   }
 }
 
-function buildSystemPrompt(tableHint: string): string {
+export function buildSystemPrompt(tableHint: string): string {
   return (
     "You are an AI assistant connected to a surveilr Resource Surveillance State Database (RSSD) via an MCP server. " +
     "Your primary capability is answering questions by generating and executing SQL queries against the RSSD — a read-only SQLite database.\n\n" +
+
+    "CRITICAL — Table Knowledge:\n" +
+    "You have ZERO prior knowledge of what tables exist in this database. " +
+    "Never assume, guess, or hallucinate table or column names. " +
+    "Every table and column name you use in SQL MUST come from a tool result in this conversation. " +
+    "If you are unsure which table to use, discover it using the tools — never ask the user.\n\n" +
+
+    "CRITICAL — User Interaction:\n" +
+    "Never ask the user for table names, column names, database structure, or any technical database details. " +
+    "The user speaks in plain language about their domain (e.g. 'show me devices', 'list compliance issues'). " +
+    "It is YOUR job to silently discover the schema, find the right tables, and answer their question. " +
+    "If you cannot find relevant data after discovery, tell the user what you found and what seems to be missing — but never ask them to name a table.\n\n" +
+
     "Use a 'Progressive Discovery' strategy: start with lightweight tools and escalate only when needed. " +
     "You have a maximum of 15 tool calls per response — use them efficiently.\n\n" +
+
     "Core Constraints:\n" +
     "- Read-only: Only SELECT statements are permitted. Never attempt INSERT, UPDATE, DELETE, DROP, or any DDL.\n" +
     "- Row limits: Queries return 10 rows by default, max 50 rows. Request more explicitly only when truly necessary.\n" +
     "- Text truncation: All text fields are truncated at 200 characters. If a value ends with '... (N chars total)', the full value is longer than displayed.\n" +
     "- Step budget: You have at most 15 tool calls per response. Prefer the minimum number of calls needed.\n\n" +
+    "- SQL format: Never end SQL with a semicolon. Write bare SQL only, no trailing punctuation.\n" +
+"- On query failure: Do NOT retry the same query. Instead try a simpler alternative: " +
+
     "Available MCP Tools:\n" +
-    "1. Schema Discovery (use these FIRST):\n" +
-    "   - list_tables(): ~50-100 tokens. Use at the start of a new conversation to see what tables exist.\n" +
-    "   - get_table_columns(table_name): ~50-200 tokens. Use once you know which tables are relevant.\n" +
-    "   - get_table_metadata(table_name): Detailed column definitions for a specific table.\n" +
-    "   - get_schema_compact(): ~2k-5k tokens. Use when you need a broad overview of the full database structure.\n" +
-    "   - get_schema(): ~25k-80k tokens. Use only when full metadata and row counts are explicitly required.\n\n" +
-    "2. Data Sampling:\n" +
-    "   - get_table_sample(table_name): Returns first 3 rows from a table; text fields truncated to 200 chars.\n" +
-    "   - get_table_stats(table_name): Get row count and basic stats for a table.\n\n" +
-    "3. Query Execution:\n" +
+    "1. Schema Discovery — always start here:\n" +
+    "   - get_schema_compact(): YOUR DEFAULT FIRST CALL on every new conversation. Returns all table names and columns in ~2k-5k tokens.\n" +
+    "   - list_tables(): ~50-100 tokens. Use only if get_schema_compact() was already called and you need a quick refresh.\n" +
+    "   - get_table_columns(table_name): Confirms exact column names for a specific table.\n" +
+    "   - get_table_metadata(table_name): Detailed column definitions including types and constraints.\n" +
+    "   - get_schema(): ~25k-80k tokens. Use ONLY when the user explicitly asks for the full schema.\n\n" +
+    "2. Ontology Tools — use when domain concepts are involved:\n" +
+    "   - list_ontology(): Lists all ontology classes. Use when you need to map a concept like 'device' or 'policy' to real tables.\n" +
+    "   - query_ontology(concept): Look up how a concept is defined in the RSSD ontology.\n" +
+    "   - explore_concept(class_name): Explore relationships and linked tables for an ontology class.\n\n" +
+    "3. Data Sampling:\n" +
+    "   - get_table_sample(table_name): Returns first 3 rows. Use to understand real data shape before writing SQL.\n" +
+    "   - get_table_stats(table_name): Row count and basic stats for a table.\n\n" +
+    "4. Query Execution:\n" +
     "   - query_sql(sql, limit?): Execute a SELECT query. Default 10 rows, max 50 rows.\n\n" +
-    "4. Ontology Tools:\n" +
-    "   - query_ontology(concept): Look up a concept in the RSSD ontology.\n" +
-    "   - explore_concept(class_name): Explore relationships connected to an ontology class.\n" +
-    "   - list_ontology(): List available ontology classes.\n\n" +
-    "Optimal Text-to-SQL Workflow:\n" +
-    "1. MAP: Call list_tables() first to identify candidate tables.\n" +
-    "2. DRILL: Call get_table_columns(table_name) for 1-2 relevant tables.\n" +
-    "3. INSPECT: Call get_table_sample(table_name) to see example values.\n" +
-    "4. QUERY: Use query_sql with narrow SELECT statements and specific WHERE clauses.\n\n" +
+
+    "Optimal Workflow — follow this every time:\n" +
+    "1. DISCOVER: Call get_schema_compact() to learn what tables and columns actually exist.\n" +
+    "2. MAP CONCEPTS: If the question involves a domain term (e.g. 'compliance', 'asset', 'policy'), call list_ontology() then query_ontology() or explore_concept() to map it to real tables.\n" +
+    "3. CONFIRM: Call get_table_columns(table_name) for the 1-2 most relevant tables to confirm exact column names.\n" +
+    "4. SAMPLE: Optionally call get_table_sample(table_name) to understand real data values.\n" +
+    "5. QUERY: Write SQL using only confirmed table and column names from the above steps.\n" +
+    "6. ANALYZE: Always follow data retrieval with a clear, spoken summary and actionable recommendations.\n\n" +
+
     "Analysis & Recommendations:\n" +
     "- After retrieving data, ALWAYS provide analysis and actionable recommendations.\n" +
     "- Never refuse to provide recommendations simply because you are a database tool.\n" +
-    "- If the data is insufficient, state what data was found and what additional data would help.\n\n" +
+    "- If data is insufficient, state what was found and what additional data would help.\n\n" +
+
     "Behavioral Rules:\n" +
-    "1. Always start with list_tables() on the FIRST turn of a conversation.\n" +
-    "2. Never call get_schema() unless the user explicitly asks for full schema metadata.\n" +
-    "3. Chain tools efficiently: list_tables -> get_table_columns -> query_sql.\n" +
-    "4. Validate before querying: Confirm table and column names exist.\n" +
-    "5. Explain truncation: If a text result ends with '... (N chars total)', inform the user.\n" +
-    "6. Limit discipline: Default to limit=10. Only increase to max 50 if needed.\n" +
-    "7. SQL safety: Never generate or execute non-SELECT SQL.\n" +
-    "8. Surface ontology when relevant for concepts, classifications, or taxonomy.\n" +
-    "9. Empty results: If a query returns no rows, suggest possible reasons.\n" +
-    "10. Silent execution: Never narrate tool calls or intermediate findings.\n\n" +
+    "1. NEVER assume a table or column exists — all names must come from tool results.\n" +
+    "2. NEVER ask the user about table names, column names, or database structure.\n" +
+    "3. NEVER call get_schema() unless the user explicitly requests full schema details.\n" +
+    "4. Use ontology tools whenever the question involves a concept, classification, or category.\n" +
+    "5. Validate before querying: every table and column in your SQL must be confirmed from a prior tool result.\n" +
+    "6. If a query returns no rows, check your table/column names against discovery results and retry before reporting to the user.\n" +
+    "7. Explain truncation: if a result ends with '... (N chars total)', tell the user the full value is longer.\n" +
+    "8. Limit discipline: default to limit=10. Only increase to max 50 if genuinely needed.\n" +
+    "9. SQL safety: never generate or execute non-SELECT SQL.\n" +
+    "10. Silent execution: never narrate tool calls or intermediate steps to the user.\n\n" +
+
     "Voice-specific rules (IMPORTANT — this is a voice interface):\n" +
     "- Always respond in natural spoken language. No bullet points, no markdown, no numbered lists.\n" +
-    "- Convert any data findings into flowing sentences a human would speak aloud.\n" +
+    "- Convert all data findings into flowing sentences a human would speak aloud.\n" +
     "- Keep responses concise — summarize findings rather than reading raw data row by row.\n" +
-    "- If results are large, highlight the most important findings only." +
+    "- If results are large, highlight only the most important findings.\n" +
+    "- All schema discovery happens silently in the background. Only speak when you have a real answer for the user.\n" +
     tableHint
   );
 }
 
-async function buildMCPTools(): Promise<{ tools: Record<string, llm.FunctionTool<any>>; client: Client }> {
+export async function buildMCPTools(): Promise<{
+  tools: Record<string, llm.FunctionTool<any>>;
+  client: Client;
+}> {
   const client = new Client({ name: "livekit-mcp-bridge", version: "1.0.0" });
 
   const transport = new StdioClientTransport({
@@ -134,9 +157,11 @@ async function buildMCPTools(): Promise<{ tools: Record<string, llm.FunctionTool
     toolMap[toolName] = llm.tool({
       description: tool.description ?? toolName,
       parameters: z.object(
-        Object.fromEntries(
-          Object.entries(properties).map(([key, val]: [string, any]) => {
-            let zodType: z.ZodTypeAny;
+  Object.keys(properties).length === 0
+    ? { _noop: z.string().optional() }  // dummy field so Zod accepts {}
+    : Object.fromEntries(
+        Object.entries(properties).map(([key, val]: [string, any]) => {
+           let zodType: z.ZodTypeAny;
             switch (val.type) {
               case "integer":
               case "number":
@@ -158,18 +183,22 @@ async function buildMCPTools(): Promise<{ tools: Record<string, llm.FunctionTool
               zodType = zodType.optional();
             }
             return [key, zodType];
-          })
-        )
-      ),
+        })
+      )
+),
       execute: async (args) => {
         const coerced: Record<string, any> = {};
         for (const [key, val] of Object.entries(args as Record<string, any>)) {
           const propType = properties[key]?.type;
           if ((propType === "integer" || propType === "number") && typeof val === "string") {
             coerced[key] = Number(val);
-          } else {
-            coerced[key] = val;
-          }
+          } else if (key === "sql" && typeof val === "string") {
+      // Strip trailing semicolons — surveilr MCP doesn't accept them
+      coerced[key] = val.trim().replace(/;+$/, "");
+    } else {
+      coerced[key] = val;
+    }
+  
         }
         console.log(`🔧 Calling tool: ${toolName}`, coerced);
         const result = await client.callTool({ name: toolName, arguments: coerced });
@@ -184,61 +213,30 @@ async function buildMCPTools(): Promise<{ tools: Record<string, llm.FunctionTool
 }
 
 export class Agent extends voice.Agent {
-  private mcpClient: Client | null = null;
+  private mcpClient: Client;
 
-  constructor() {
-    super({
-      instructions: "You are a helpful database assistant. Initializing...",
-    });
+  constructor(
+    instructions: string,
+    tools: Record<string, llm.FunctionTool<any>>,
+    client: Client
+  ) {
+    super({ instructions, tools });
+    this.mcpClient = client;
+
+    console.log("📝 Instructions length:", instructions.length);
+    console.log("🔧 Tools registered:", Object.keys(tools).join(", "));
   }
 
   override async onEnter(): Promise<void> {
-    console.log("🔌 Connecting to MCP server (surveilr)...");
-
-    const { tools, client } = await buildMCPTools();
-    this.mcpClient = client;
-
-    const toolNames = Object.keys(tools);
-    console.log(`✅ MCP connected! Found ${toolNames.length} tools:`);
-    toolNames.forEach((name) => console.log(`   - ${name}`));
-
-    // Discover all tables and build full prompt with table hints
-    const knownTables = await getKnownTables(tools);
-    console.log(`📊 Known tables: ${knownTables.length}`);
-
-    const tableHint = knownTables.length
-      ? `\n\nAvailable tables and views in the RSSD (use exact names):\n${knownTables.join(", ")}.`
-      : "";
-
-    // Update instructions with real table names before first reply
-    const newInstructions = buildSystemPrompt(tableHint);
-    const newChatCtx = this.chatCtx.copy();
-    const systemMessage = newChatCtx.items.find(
-      (item) => item.type === "message" && (item.role === "system" || item.role === "developer")
-    );
-
-    if (systemMessage && systemMessage.type === "message") {
-      systemMessage.content = [newInstructions];
-    } else {
-      newChatCtx.addMessage({ role: "system", content: newInstructions });
-    }
-
-    await this.updateChatCtx(newChatCtx);
-
-    // Register all MCP tools
-    await this.updateTools(tools);
-
-    // Greet the user
     this.session.generateReply({
       instructions:
-        "Greet the user warmly. Let them know you are connected to the surveilr database and ready to answer questions.",
+        "Greet the user warmly and naturally. Let them know you are connected to the surveilr database and ready to answer questions about their data. Do not mention tables, schemas, or technical details.",
     });
   }
 
   override async onExit(): Promise<void> {
     if (this.mcpClient) {
       await this.mcpClient.close();
-      this.mcpClient = null;
     }
   }
 }
