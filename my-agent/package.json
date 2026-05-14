@@ -35,6 +35,8 @@
   },
   "dependencies": {
     "@livekit/agents": "^1.4.0",
+    "@livekit/agents-plugin-cartesia": "^1.4.2",
+    "@livekit/agents-plugin-deepgram": "^1.4.2",
     "@livekit/agents-plugin-google": "^1.4.0",
     "@livekit/agents-plugin-livekit": "^1.4.0",
     "@livekit/agents-plugin-silero": "^1.4.0",
